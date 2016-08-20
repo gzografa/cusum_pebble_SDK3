@@ -1,0 +1,37 @@
+{
+    "author": "gzografa@gmail.com",
+    "dependencies": {},
+    "keywords": [],
+    "name": "test_new",
+    "pebble": {
+        "capabilities": [
+            ""
+        ],
+        "displayName": "test_new",
+        "enableMultiJS": true,
+        "messageKeys": [],
+        "projectType": "native",
+        "resources": {
+            "media": [
+                {
+                    "file": "images/DISMISS",
+                    "name": "DISMISS",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/CHECK",
+                    "name": "CHECK",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                }
+            ]
+        },
+        "sdkVersion": "3",
+        "uuid": "592bbbde-ed83-4d0f-9fb8-9e1352a8b67d",
+        "watchapp": {
+            "watchface": false
+        }
+    },
+    "version": "1.0.0"
+}
