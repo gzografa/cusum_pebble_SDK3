@@ -2,17 +2,33 @@
     "author": "gzografa@gmail.com",
     "dependencies": {},
     "keywords": [],
-    "name": "test_new",
+    "name": "no-fall-3",
     "pebble": {
-        "capabilities": [
-            ""
-        ],
-        "displayName": "test_new",
+        "displayName": "No Fall SDK 3",
         "enableMultiJS": true,
         "messageKeys": [],
         "projectType": "native",
         "resources": {
             "media": [
+                {
+                    "file": "images/MSG_NOT",
+                    "name": "MSG_NOT",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/FALL",
+                    "menuIcon": true,
+                    "name": "FALL",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/MSG_SENT",
+                    "name": "MSG_SENT",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
                 {
                     "file": "images/DISMISS",
                     "name": "DISMISS",
@@ -28,6 +44,11 @@
             ]
         },
         "sdkVersion": "3",
+        "targetPlatforms": [
+            "aplite",
+            "basalt",
+            "chalk"
+        ],
         "uuid": "592bbbde-ed83-4d0f-9fb8-9e1352a8b67d",
         "watchapp": {
             "watchface": false

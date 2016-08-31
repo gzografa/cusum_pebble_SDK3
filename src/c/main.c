@@ -6,7 +6,9 @@ static MenuLayer *menu_layer;
 // static MenuLayer *menu_layer_h;
 static Layer *window_layer;
 ActionBarLayer *action_bar;
-static GBitmap *dismiss, *check;
+static GBitmap *dismiss, *check, *msgSent;
+static BitmapLayer *s_layer; 
+AppTimer *timer;
 
 int samplingRate = ACCEL_SAMPLING_10HZ;
 int sMinX = 1000;
@@ -15,6 +17,8 @@ int sMinZ = 1000;
 int h = 1000;
 int fall = 0;
 int menuFlag = 0;
+int timerDuration = 4000;
+int contactFlag = 0;
 
 enum CustomerDataKey {
     FALL = 0x0,
@@ -78,15 +82,29 @@ static void data_handler(AccelData *data, uint32_t num_samples) {
 }
 
 
+void timer_callback(void *data) {
+  if(contactFlag == 1){
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Timer passed and msg is sent");
+  }else if(fall == 1){
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Timer passed and msg NOT sent");
+    contact_android();
+    action_bar_layer_destroy(action_bar);
+  }else{
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "cusum restarted");
+  }
+  app_timer_cancel(timer);
+}
 
 static void fall_found(){  
   insertActionBarLayer();
   APP_LOG(APP_LOG_LEVEL_DEBUG, " FALL detected and into fall found function ");
   static char new_buffer[128];
-  snprintf(new_buffer, sizeof(new_buffer),"you have fallen, do you need help ?");
+  snprintf(new_buffer, sizeof(new_buffer),"Fall detected\n Do you need \n assistance ?");
   text_layer_set_text(s_output_layer, new_buffer);
   vibes_long_pulse();
+  timer = app_timer_register(timerDuration, (AppTimerCallback) timer_callback, NULL);
 }
+
 
 void insertActionBarLayer(){
   check = gbitmap_create_with_resource(RESOURCE_ID_CHECK);
@@ -155,7 +173,7 @@ void config_provider(void *context) {  //was Window *window
  // single click / repeat-on-hold config:
   window_single_click_subscribe(BUTTON_ID_DOWN, down_single_click_handler);
   window_single_click_subscribe(BUTTON_ID_UP, up_single_click_handler);
-  window_single_click_subscribe(BUTTON_ID_SELECT, select_single_click_handler);
+//   window_single_click_subscribe(BUTTON_ID_SELECT, select_single_click_handler);
 }
 
 void resetMinAndFall(){
@@ -187,26 +205,31 @@ APP_LOG(APP_LOG_LEVEL_DEBUG, "*********** CONTACT ANDROID APP *************");
     contact_android();
 }
 
-void select_single_click_handler(ClickRecognizerRef recognizer, void *context) {
-action_bar_layer_destroy(action_bar);
-APP_LOG(APP_LOG_LEVEL_DEBUG, "*********** CONTACT ANDROID APP *************");
-    contact_android();
-}
+// void select_single_click_handler(ClickRecognizerRef recognizer, void *context) {
+// action_bar_layer_destroy(action_bar);
+// APP_LOG(APP_LOG_LEVEL_DEBUG, "*********** CONTACT ANDROID APP *************");
+//     contact_android();
+// }
 
 void contact_android(){
+  contactFlag = 1;
   if(fall == 1){
     DictionaryIterator *out_iter;
     // Prepare the outbox buffer for this message
     AppMessageResult result = app_message_outbox_begin(&out_iter);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Result %d", (int)result);
     if(result == APP_MSG_OK) {
       Tuplet value = TupletCString(FALL,"FALL");
       dict_write_tuplet(out_iter, &value);
 
       // Send this message
       result = app_message_outbox_send();
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "Result 22 %d", (int)result);
       static char new_buffer[128];
-      snprintf(new_buffer, sizeof(new_buffer),"Message Sent");
+      snprintf(new_buffer, sizeof(new_buffer),"Message Sent From Watch");
       text_layer_set_text(s_output_layer, new_buffer);
+      
+      
       if(result != APP_MSG_OK) {
         APP_LOG(APP_LOG_LEVEL_ERROR, "Error sending the outbox: %d", (int)result);
       }
@@ -219,12 +242,39 @@ void contact_android(){
   }
 }
 
+void showSendImage(int imgChoice){
+
+ //code for the msg sent image
+    GRect bounds = layer_get_bounds(window_layer);
+
+    if(imgChoice == 0){
+      msgSent = gbitmap_create_with_resource(RESOURCE_ID_MSG_SENT); 
+    }else{
+      msgSent = gbitmap_create_with_resource(RESOURCE_ID_MSG_NOT);
+    }
+
+    GPoint center = grect_center_point(&bounds);
+
+    GSize image_size = gbitmap_get_bounds(msgSent).size;
+
+    GRect image_frame = GRect(center.x, center.y, image_size.w, image_size.h);
+    image_frame.origin.x -= image_size.w / 2;
+    image_frame.origin.y -= image_size.h / 2;
+
+    // Use GCompOpOr to display the white portions of the image
+    s_layer = bitmap_layer_create(image_frame);
+    bitmap_layer_set_bitmap(s_layer, msgSent);
+    bitmap_layer_set_compositing_mode(s_layer, GCompOpSet);
+    layer_add_child(window_layer, bitmap_layer_get_layer(s_layer));
+}
+
 void outbox_sent_callback(DictionaryIterator *iter, void *context) {
   // The message just sent has been successfully delivered
   APP_LOG(APP_LOG_LEVEL_ERROR, "Message SENT");
   static char new_buffer[128];
   snprintf(new_buffer, sizeof(new_buffer),"Phone RECEIVED message");
   text_layer_set_text(s_output_layer, new_buffer);
+  showSendImage(0);
 }
 
 void outbox_failed_callback(DictionaryIterator *iter,
@@ -234,7 +284,9 @@ void outbox_failed_callback(DictionaryIterator *iter,
   static char new_buffer[128];
   snprintf(new_buffer, sizeof(new_buffer),"Message FAILED to sent");
   text_layer_set_text(s_output_layer, new_buffer);
+  showSendImage(1);
 }
+
 
 static void setupAppMessage(void){
     //app message callbacks registered
